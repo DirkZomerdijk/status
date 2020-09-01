@@ -167,10 +167,6 @@ class Model():
         output = os.path.dirname(os.path.realpath(__file__)) + '\\results\\'+ args["save_folder"] + "{0:03}".format(args['job_nr'])  + ".pkl"
         f = open(output, "wb")
         pickle.dump(self.results, f)
-
-        
-        # self.df['stress'] = self.stress_mean
-    
     
         
     def split_population_status(self):
@@ -218,14 +214,11 @@ class Model():
         self.prestige_m[:, self.step, self.i] = copy.deepcopy(self.prestige)
         if self.step >= WEEK:
            self.chronic_m[:, self.step, self.i] = calculate_chronic_state(self.stress_m, self.chronic_threshold, self.time, self.step, self.i)
-        
-
             
     # @profile
     def run(self):
         self.step = 0
         while(self.step < self.time - 1):
-            # print(self.step)
             actors = select_actors(self.events, self.step)
             self.interactions, self.interaction_history, self.stress, self.similarity, self.prestige = interact_actors(actors, self.interactions, self.interaction_history, self.similarity, self.prestige, self.status, self.psr, self.prestige_param, self.ses_noise, self.prestige_beta, self.psr_param, self.stress, self.vul_param, self.stressor_param)
 
@@ -237,108 +230,16 @@ class Model():
             self.step += 1
             self.collect()
     
-            
-    # @profile
-    def select_alter(self, agent):
-        actor = int(agent[0])
-        interactions = int(agent[1])
-        actor_similarity = self.similarity[actor, :]
-        # print(actor_similarity)
-        for interaction in range(interactions):
-            while(True):
-                interaction_probability = transform_probability(actor_similarity)
-                if interaction_probability[0] == 999:
-                    return
-                sorted_probability = np.argsort(interaction_probability)[::-1]
-                interaction_probability = np.cumsum(interaction_probability[sorted_probability])
-                dice = np.random.sample()
-                alter = sorted_probability[find_nearest_above(interaction_probability, dice)]
-
-                idx = np.sort([actor, alter])
-                if(self.interaction_history[idx[0], idx[1]]!=1):
-                    self.interactions[[idx[0], idx[1]]] += 1
-                    return alter
-                else:
-                    self.similarity[idx[0], idx[1]] = 0
-
-    def calc_status_difference(self, actor, alter):
-        agents = [actor, alter]
-        
-        #collector
-        # self.similarity_interactions.append(self.similarity[actor, alter])
-        
-        prestige_actor, prestige_alter = get_prestige(actor, alter, self.prestige, self.prestige_param)
-        noise_actor = np.random.uniform(-self.ses_noise + prestige_actor, self.ses_noise + prestige_actor)
-        noise_alter = np.random.uniform(-self.ses_noise + prestige_alter, self.ses_noise + prestige_alter)
-        
-        actor_pses = np.max([self.status[actor] + noise_actor, 0])
-        alter_pses = np.max([self.status[alter] + noise_alter, 0]) 
-        
-        perceiver = agents[np.argmin([actor_pses, alter_pses])]
-        discriminator = agents[np.argmax([actor_pses, alter_pses])]
-
-        status_difference = abs(actor_pses - alter_pses)
-        # collector
-        # self.status_difference.append(status_difference)
-        return status_difference, perceiver, discriminator
-
-
-    # @profile
-    def update_prestige(self, agents, target):
-        status_group = self.status[agents[target]]
-        group_member = random.choice(np.where(self.status == status_group)[0])
-        member_distance = 1 / self.prestige[group_member]
-        
-        if target == 0:
-            new_member_distance = member_distance * (1 + self.params['prestige_beta'])
-        else:
-            new_member_distance = member_distance * (1 - self.params['prestige_beta'])
-
-        new_member_prestige = 1 / new_member_distance
-        self.prestige[group_member] = new_member_prestige    
-
     def reset_day(self):
         self.similarity = deepcopy(self.similarity_base) 
         self.interaction_history = np.zeros((self.no_agents, self.no_agents), dtype=np.uint8)
             
-    def recover(self):
-        self.stress -= self.recover_param
-        self.stress[self.stress < 0] = 0
-        self.stress[self.stress > self.stress_max] = self.stress_max
-    
-    # @profile    
-    def cope(self, stressor, psr):
-        
-        #collector
-        # self.stressors.append(stressor)
-        stress = stressor - psr*self.psr_param + np.absolute(np.random.normal(loc=0.0, scale=0.05))
-        
-        #collector
-        # self.coped_stress.append(stressor-stress)
-        return stress if stress > 0 else 0
-            
-    def calc_stressor(self, status_difference, vulnerability, stressor_p):
-        stressor = self.get_stressor(status_difference)
-        return stressor * (1 + vulnerability)
-        
 
     def get_stressor(self, status_difference):
         x_null = 3
         L = 1.049
         k = 1
         return -0.049 + L/(1+np.exp(-k*(status_difference-x_null))) * self.stressor_param
-
-
-    def get_vulnerability(self, stress):
-        x_null = 4 
-        L = 1.043
-        k = .8
-        return -0.04 + L/(1+np.exp(-k*(stress-x_null))) * self.vul_param
-    
-
-    def get_prestige(self, actor, alter):
-        return self.prestige[actor]*self.params['prestige_param'], self.prestige[alter]*self.params['prestige_param']
-    
 
                         
 if __name__ == "__main__":
