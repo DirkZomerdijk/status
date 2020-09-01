@@ -1,0 +1,32 @@
+{
+    "data_file": "clean",
+    "population_seeds": [115016],
+    "status_type": "linear",
+    "distance_measure": "euclidean",
+    "scenario": "normal",
+    "population_size": 502,
+    "dutch_w": 0.664,
+    "turkish_w": 0.075,
+    "moroccan_w": 0.13,
+    "ghanaian_w": 0.021,
+    "suriname_w": 0.11,
+    "parameters": {
+        "chronic_threshold": [0.0010],
+        "similarity_base": [0.25, 0.3, 0.35],
+        "interactions": [2],
+        "ses_noise": [2],
+        "repeats": [1],
+        "vul_param": [0.1, 0.2, 0.3],
+        "psr_param": [0.1, 0.2, 0.3],
+        "recover_param": [0.075, 0.1, 0.125],
+        "time": [500],
+        "stress_max": [30],
+        "prestige_beta": [0.0075, 0.01, 0.0125],
+        "prestige_param": [0.4, 0.5, 0.6],
+        "stressor_param": [0.4, 0.5, 0.6],
+        "segregation_penalty": [0.2],
+        "ethnic_penalty": [0.5],
+        "smoke_penalty": [0.5],
+        "bmi_penalty": [0.5]
+    }
+}

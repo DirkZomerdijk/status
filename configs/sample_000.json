@@ -1,0 +1,59 @@
+{
+    "data_file": "clean",
+    "save_folder": "pre-test\\",
+    "status_type": "linear",
+    "distance_measure": "euclidean",
+    "scenario": "normal",
+    "dutch_w": 0.2,
+    "turkish_w": 0.2,
+    "moroccan_w": 0.2,
+    "ghanaian_w": 0.2,
+    "suriname_w": 0.2,
+    "parameters": {
+        "similarity_base": [
+            0.13272732205046234
+        ],
+        "ses_noise": [
+            0.9633794982986787
+        ],
+        "vul_param": [
+            0.1148662693300973
+        ],
+        "psr_param": [
+            0.3054861239160258
+        ],
+        "recover_param": [
+            0.10727363933130166
+        ],
+        "prestige_beta": [
+            0.004079384657137671
+        ],
+        "prestige_param": [
+            0.12356077893152591
+        ],
+        "stressor_param": [
+            0.10654873387652898
+        ],
+        "repeats": [
+            1
+        ],
+        "population_size": [
+            502
+        ],
+        "chronic_threshold": [
+            0.0001
+        ],
+        "stress_max": [
+            50
+        ],
+        "time": [
+            500
+        ],
+        "job_nr": [
+            0
+        ],
+        "interactions": [
+            1
+        ]
+    }
+}
