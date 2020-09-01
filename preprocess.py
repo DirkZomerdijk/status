@@ -121,13 +121,13 @@ def calculate_occupation_composite(df):
 def calculate_status(df):
     status = []
     for i, row in df[['occupation', 'H1_Opleid', 'H1_InkHhMoeite']].iterrows():
-        status.append(np.sum([status_dict['occ'][row['occupation']], status_dict['edu'][row['H1_Opleid']], status_dict['inc'][row['H1_InkHhMoeite']]]))
+        status.append(np.sum([1, status_dict['occ'][row['occupation']], status_dict['edu'][row['H1_Opleid']], status_dict['inc'][row['H1_InkHhMoeite']]]))
     return status
 
 def calculate_status_linear(df):
     status = []
     for i, row in df[['occupation', 'H1_Opleid', 'H1_InkHhMoeite']].iterrows():
-        status.append(np.sum([status_dict_linear['occ'][row['occupation']], status_dict_linear['edu'][row['H1_Opleid']], status_dict_linear['inc'][row['H1_InkHhMoeite']]]) + 1)
+        status.append(np.sum([1,status_dict_linear['occ'][row['occupation']], status_dict_linear['edu'][row['H1_Opleid']], status_dict_linear['inc'][row['H1_InkHhMoeite']]]) + 1)
     status = np.array(status)
     status[status < 0.1] = 0.1
     return status

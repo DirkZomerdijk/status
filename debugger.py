@@ -12,12 +12,12 @@ from scipy import stats
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import seaborn as sns
+import seaborn as sns; sns.set()
 
 class Debug():
     
     def __init__(self, results):
         self.params = results['params']
-        print(self.params['noise_seeds'])
         self.chronic_threshold = results['params']['chronic_threshold']
         self.df = results['df']
         self.no_interactions = results['params']['interactions']
@@ -118,9 +118,9 @@ if __name__ == "__main__":
 
 
     # print(d.stress_agents.shape)
-    plt.scatter(d.df['status'].iloc[d.low_status] + np.mean(d.prestige_agents[d.low_status], axis=1), np.mean(d.stress_agents[d.low_status], axis=1), alpha=0.2, c='b')
-    plt.scatter(d.df['status'].iloc[d.med_status] + np.mean(d.prestige_agents[d.med_status], axis=1), np.mean(d.stress_agents[d.med_status], axis=1), alpha=0.2, c='r')
-    plt.scatter(d.df['status'].iloc[d.high_status] + np.mean(d.prestige_agents[d.high_status], axis=1), np.mean(d.stress_agents[d.high_status], axis=1), alpha=0.2, c='g')
+    plt.scatter(d.df['status'].iloc[d.low_status] + np.mean(d.prestige_agents[d.low_status], axis=1), np.mean(d.stress_agents[d.low_status], axis=1), alpha=0.3, c='b')
+    plt.scatter(d.df['status'].iloc[d.med_status] + np.mean(d.prestige_agents[d.med_status], axis=1), np.mean(d.stress_agents[d.med_status], axis=1), alpha=0.3, c='r')
+    plt.scatter(d.df['status'].iloc[d.high_status] + np.mean(d.prestige_agents[d.high_status], axis=1), np.mean(d.stress_agents[d.high_status], axis=1), alpha=0.3, c='g')
     # # z = np.polyfit(np.array(d.df['status']+ np.mean(d.prestige_agents, axis=1), dtype=np.float32), np.array(np.mean(d.stress_agents, axis=1), dtype=np.float32), 1)
     # # p = np.poly1d(z)
     # # x = np.array(d.df['status']+ np.mean(d.prestige_agents, axis=1), dtype=np.float32)
@@ -131,19 +131,16 @@ if __name__ == "__main__":
     # plt.show()
     print(d.stress_agents.shape)
     
-    stress_end = d.stress_agents[:, 99].flatten()
+    
+    stress_end = d.stress_agents[:, d.time-1].flatten()
     print(len(stress_end[stress_end < 0.0001]))
-    plt.hist(np.array(d.stress_agents[:, 99].flatten(), dtype=np.float32), bins=100)
+    plt.hist(np.array(d.stress_agents[:, d.time-1].flatten(), dtype=np.float32), bins=100)
     plt.show()
     
     d.df['stress'] = np.mean(d.stress_agents, axis=1)
     d.df['interactions'] = np.mean(d.interactions_agents, axis=1)
     
-    df = d.df.loc[d.df['stress'] < 0.0001]
-    df.hist(figsize = (12,12))
-    df.plot.scatter(x='status', y='stress')
-    print(len(df.index))
-    plt.show()
+    # plt.plot(d.stress_agents[null_agents[:10]])
     # plt.ylim([-1,500])
     # plt.xlim([-0.1,0.1])
     # plt.ylim([-0.1, 5])

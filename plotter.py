@@ -11,7 +11,7 @@ import os
 from scipy import stats
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
-import seaborn as sns
+import seaborn as sns; sns.set()
 
 class Analyzer():
 

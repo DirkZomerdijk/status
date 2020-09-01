@@ -59,7 +59,7 @@ class Model():
         # Collector placeholders
         self.stress_m = np.zeros((self.no_agents, self.time, self.repeats), dtype=np.float16)
         self.prestige_m = np.zeros((self.no_agents, self.time, self.repeats), dtype=np.float16)
-        self.interactions_m = np.zeros((self.no_agents, self.time, self.repeats), dtype=np.int16)
+        self.interactions_m = np.zeros((self.no_agents, self.time, self.repeats), dtype=np.uint16)
         self.chronic_m = np.zeros((self.no_agents, self.time, self.repeats), dtype=np.uint8)
         
         # Run collectors
@@ -157,7 +157,7 @@ class Model():
                 "interactions_high_std": np.std(np.mean(self.interactions_m[self.high_status,:,:], axis=0), axis=1),
                 
                 "params": self.params, 
-                "df": self.df[['status', 'psr', 'eth']],
+                "df": self.df[['id', 'status', 'psr', 'eth']],
                 "events": self.events_m
         }
            

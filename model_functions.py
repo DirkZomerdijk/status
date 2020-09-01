@@ -64,8 +64,7 @@ def get_prestige(actor, alter, prestige, prestige_p):
 
 @njit(fastmath=True)
 def calc_status_difference(actor, alter, prestige, status, prestige_p, ses_noise):
-    agents = np.array([actor, alter], dtype=np.int8)
-    
+    agents = np.array([actor, alter], dtype=np.uint16)
     #collector
     # similarity_interactions.append(similarity[actor, alter])
     
@@ -87,6 +86,7 @@ def calc_status_difference(actor, alter, prestige, status, prestige_p, ses_noise
     status_difference = np.absolute(actor_pses - alter_pses)
     # collector
     # status_difference.append(status_difference)
+    # print(agents, perceiver, discriminator)
     return status_difference, perceiver, discriminator
 
 @njit(fastmath=True)
@@ -139,6 +139,7 @@ def interact_actors(actors, interactions, interaction_history, similarity, prest
         agent = actors[i]
         alter, interactions, interaction_history, similarity = select_alter(agent, interactions, interaction_history, similarity)
         status_difference, perceiver, discriminator = calc_status_difference(int(agent[0]), int(alter), prestige, status, prestige_p, ses_noise)
+        # print(agent, perceiver, discriminator)
         vulnerability = get_vulnerability(stress[perceiver], vul_p)
         stressor = calc_stressor(status_difference, vulnerability, stressor_p)
         stress[perceiver] += cope(stressor, psr[perceiver], psr_p)
