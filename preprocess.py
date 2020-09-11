@@ -141,10 +141,12 @@ if __name__ == "__main__":
     df = calculate_occupation_composite(df)
     df['status_l'] = calculate_status_linear(df) 
     df['status'] = calculate_status(df)
-    df['prestige'] = df['status'] / MAX_STATUS_DIFFERENCE
-    
-    print(df['status'].min(),df['status'].max())
-    print(df['status_l'].min(),df['status_l'].max())
+    # print(df['status_l'].unique())
+    # print(df['status'].unique())
+    df['prestige'] = df['status_l'] / MAX_STATUS_DIFFERENCE
+    # df['prestige'] = 0.5
+    # print(len(df['prestige'].unique()))
+    # print(len(df['prestige'].unique()))
     df['psr'] = calculate_psr(df)
     df.to_csv("./data/clean.csv", index=False)
     

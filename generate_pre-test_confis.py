@@ -27,25 +27,23 @@ global_settings = {
     "parameters": {}
 }
 
-
-
+     
 param_range = {
-    "similarity_min" : {"range": [0,0.5], "type": "f"},
-    "ses_noise" : {"range": [0,3], "type": "f"},
-    "vul_param" : {"range": [0.1,1], "type": "f"},
+    "similarity_min" : {"range": [0.1, 1], "type": "f"},
+    "ses_noise" : {"range": [0, 4], "type": "i"},
+    # "vul_param" : {"range": [0.1,1], "type": "f"},
     "psr_param" : {"range": [0.1,1], "type": "f"},
-    "recover_param" : {"range": [0.1, 0.2], "type": "f"},
-    "prestige_beta" : {"range": [0.0005, 0.005], "type": "f"},
-    "prestige_param" : {"range": [0.05,1], "type": "f"},
+    "recover_param" : {"range": [0.001, 0.1], "type": "f"},
+    "prestige_beta" : {"range": [0.005, 0.05], "type": "f"},
+    "prestige_param" : {"range": [0.1,1], "type": "f"},
     "stressor_param" : {"range": [0.1,1], "type": "f"},
     "interactions": {"range": [1,3], "type": "i"}, 
     "coping_noise" : {"range": [0.01, 0.1], "type": "f"},
-    
 }
 
 if __name__ == "__main__":
     
-    samples = 100
+    samples = 500
     
     configs = []
     
@@ -64,12 +62,13 @@ if __name__ == "__main__":
         config_settings = copy.deepcopy(global_settings)
         for k in param_range.keys():
             config_settings['parameters'][k] = [param_samples[k][i].item()]
-        config_settings['parameters']['repeats'] = [200]
+        config_settings['parameters']['repeats'] = [10]
         config_settings['parameters']['population_size'] = [502]
         config_settings['parameters']['chronic_threshold'] = [0.0001]
-        config_settings['parameters']['stress_max'] = [100]
+        config_settings['parameters']['stress_max'] = [10000]
         config_settings['parameters']['time'] = [500]
         config_settings['parameters']['job_nr'] = [i]
+        config_settings['parameters']['vul_param'] = [0]
         
         configs.append(config_settings)
 

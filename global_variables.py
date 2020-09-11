@@ -29,14 +29,31 @@
 #     moroccan_pop,
 #     ghanaian_pop
 # ]
-DEBUG = False
+DEBUG = True
 SAVETYPE = "group"
 
 
-root = "C:/Users/Admin/Code/status_beta/"
-results_dir = "C:/Users/Admin/Code/status_beta/results/"
-DAY = 10
-WEEK = 3*DAY
+root = "C:/Users/Admin/Code/status/"
+results_dir = "C:/Users/Admin/Code/status/results/"
+
+param_dict = {
+    # "population_size": [],
+    # "chronic_threshold": [],
+    "similarity_min": [],
+    "interactions": [],
+    "ses_noise": [],
+    # "repeats": [],
+    "vul_param": [],
+    "psr_param": [],
+    "coping_noise": [],
+    "recover_param": [],
+    "prestige_beta": [],
+    "prestige_param": [],
+    "stressor_param": [],
+    }   
+
+DAY = 1
+WEEK = 7*DAY
 
 CHRONIC_STRESS_PERIOD = 10
 

@@ -33,6 +33,7 @@ def find_nearest_above(my_array, target):
     return np.searchsorted(my_array,[target,],side='right')[0]
 
 
+# @profile
 @njit(fastmath=True)
 def select_alter(agent, interaction_m, interaction_history, similarity):
     actor = int(agent[0])
@@ -84,46 +85,47 @@ def calc_status_difference(actor, alter, prestige, status, prestige_p, ses_noise
     discriminator = agents[idx_max]
 
     status_difference = np.absolute(actor_pses - alter_pses)
-    # collector
-    # status_difference.append(status_difference)
-    # print(agents, perceiver, discriminator)
     return status_difference, perceiver, discriminator
 
 @njit(fastmath=True)
 def get_vulnerability(stress, vul_p):
-    return (-0.040 + 1.043/(1+np.exp(-0.8*(stress-4.0)))) * vul_p
+    return (-0.01 + 1.0/(1+np.exp(-.05*(stress-90)))) * vul_p
+
 
 @njit(fastmath=True)
 def calc_stressor(status_difference, vulnerability, stressor_p):
-    x_null = 3
-    L = 1.049
-    k = 1
-    return (-0.049 + L/(1+np.exp(-k*(status_difference-x_null)))) * stressor_p * (1+vulnerability)
+    return (-0.04 + 1.05/(1+np.exp(-0.4*(status_difference-8)))) * stressor_p * (1+vulnerability)
 
 @njit(fastmath=True)
-def cope(stressor, psr, psr_p):
+def cope(stressor, psr, psr_p, coping_noise):
     #collector
     # stressors.append(stressor)
-    stressor = stressor - psr*psr_p + np.absolute(np.random.normal(loc=0.0, scale=psr_p))
+    stressor = stressor - (psr*psr_p) + np.random.normal(loc=0.0, scale=coping_noise)
     
     #collector
     # coped_stress.append(stressor-stress)
     return stressor if stressor > 0 else 0
 
+# @profile
 @njit(fastmath=True)
-def update_prestige(agents, target, status, prestige, prestige_beta):
-    status_group = status[agents[target]]
-    group_members = np.where(status == status_group)
-    group_member = group_members[np.random.randint(len(group_members))]
-    member_distance = 1 / prestige[group_member]
+def update_prestige(agents, target, status, prestige, prestige_beta, prestige_min):
+    # if status[agents[0]] == status[agents[1]]: return prestige; 
     
-    if target == 0:
-        new_member_distance = member_distance * (1 + prestige_beta)
-    else:
-        new_member_distance = member_distance * (1 - prestige_beta)
+    status_group = status[agents[target]]
+    group_members = np.where(status == status_group)[0]
+    group_member = group_members[0]
+    
+    prestige_group = prestige[group_member] if prestige[group_member] > prestige_min else prestige_min 
 
-    new_member_prestige = 1 / new_member_distance
-    prestige[group_member] = new_member_prestige    
+    group_distance = 1 / prestige_group 
+    
+    if target == 0: 
+        prestige[group_members] = 1 / (group_distance * (1 + (prestige_beta / len(group_members))))
+        # prestige[group_members] = 1 / (group_distance * (1 + (prestige_beta)))
+    else: 
+        prestige[group_members] = 1 / (group_distance * (1 - (prestige_beta / len(group_members))))
+        # prestige[group_members] = 1 / (group_distance * (1 - (prestige_beta)))
+
     return prestige
 
 @njit(fastmath=True)
@@ -133,18 +135,23 @@ def recover(stress, recover_p, stress_max):
     stress[stress > stress_max] = stress_max
     return stress
 
+# @profile
 @njit(fastmath=True)
-def interact_actors(actors, interactions, interaction_history, similarity, prestige, status, psr, prestige_p, ses_noise, prestige_beta, psr_p, stress, vul_p, stressor_p):
+def interact_actors(actors, interactions, interaction_history, similarity, prestige, status, psr, prestige_p, ses_noise, prestige_beta, psr_p, stress, vul_p, stressor_p, prestige_min,status_diff, coping_noise, interaction_nr):
     for i in range(len(actors)):
         agent = actors[i]
         alter, interactions, interaction_history, similarity = select_alter(agent, interactions, interaction_history, similarity)
         status_difference, perceiver, discriminator = calc_status_difference(int(agent[0]), int(alter), prestige, status, prestige_p, ses_noise)
-        # print(agent, perceiver, discriminator)
+        
+        #collector
+        # status_diff[:, interaction_nr] = [status[perceiver], status[discriminator], status_difference]
+        # interaction_nr += 1
+
         vulnerability = get_vulnerability(stress[perceiver], vul_p)
         stressor = calc_stressor(status_difference, vulnerability, stressor_p)
-        stress[perceiver] += cope(stressor, psr[perceiver], psr_p)
-        prestige = update_prestige(np.array([perceiver, discriminator]), np.random.randint(2), status, prestige, prestige_beta)
-    return interactions, interaction_history, stress, similarity, prestige
+        stress[perceiver] += cope(stressor, psr[perceiver], psr_p, coping_noise)
+        prestige = update_prestige(np.array([perceiver, discriminator]), np.random.randint(2), status, prestige, prestige_beta, prestige_min)
+    return interactions, interaction_history, stress, similarity, prestige, status_diff, interaction_nr
 
 
 def normalize(arr, lower, upper):
@@ -153,10 +160,18 @@ def normalize(arr, lower, upper):
     normalized = (upper-lower)*(arr-arr_min)/(arr_max-arr_min) + lower
     return np.array(normalized)
 
+
 def calculate_chronic_state(stress, chronic_t, time, step, repeat):
     chronic_state = np.min(stress[:,step-WEEK:step, repeat], axis=1)
-    chronic_intensity = np.mean(stress[:, step-WEEK:step], axis=1)
-    chronic_state[chronic_state > chronic_t] = 1
-    # print(chronic_state)
+    # chronic_intensity = np.mean(stress[:, step-WEEK:step], axis=1)
+    chronic_state[chronic_state >= chronic_t] = 1
+    chronic_state[chronic_state < chronic_t] = 0
     return chronic_state
-# , chronic_i_ts
+
+# @njit
+def calculate_slopes(stress):
+    slopes = np.zeros(shape=(stress.shape[0],stress.shape[1]-1,stress.shape[2]), dtype=np.float32)
+    stress = np.asarray(stress, dtype=np.float32)
+    for i in range(stress.shape[2]):
+        slopes[:, :, i] = stress[:, 1:stress.shape[1], i] - stress[:, 0:stress.shape[1]-1, i]
+    return slopes 

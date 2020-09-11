@@ -5,13 +5,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from copy import deepcopy
 from global_variables import *
-from model_functions import get_vulnerability, calculate_chronic_state
+from model_functions import get_vulnerability, calculate_chronic_state, normalize
 import glob
 import os
 from scipy import stats
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 import seaborn as sns; sns.set()
+import itertools
+import copy
 
 class Analyzer():
 
@@ -31,62 +33,83 @@ class Analyzer():
         
         self.data = results
         
-        if len(self.data['stress'].shape) != 1:
-            self.datatype = 'grouped'
-            self.stress = np.mean(self.data['stress'][:,:,:], axis=(0, 2)),
-            self.stress_low = np.mean(self.data['stress'][self.low_status,:,:], axis=(0, 2)),
-            self.stress_med = np.mean(self.data['stress'][self.med_status,:,:], axis=(0, 2)),
-            self.stress_high = np.mean(self.data['stress'][self.high_status,:,:], axis=(0, 2)),
-            self.stress_std = np.std(np.mean(self.data['stress'][:,:,:], axis=0), axis=1),
-            self.stress_low_std = np.std(np.mean(self.data['stress'][self.low_status,:,:], axis=0), axis=1),
-            self.stress_med_std = np.std(np.mean(self.data['stress'][self.med_status,:,:], axis=0), axis=1),
-            self.stress_high_std = np.std(np.mean(self.data['stress'][self.high_status,:,:], axis=0), axis=1),      
+        # if len(self.data['stress'].shape) != 1:
+        #     self.datatype = 'grouped'
+        #     self.stress = np.mean(self.data['stress'][:,:,:], axis=(0, 2)),
+        #     self.stress_low = np.mean(self.data['stress'][self.low_status,:,:], axis=(0, 2)),
+        #     self.stress_med = np.mean(self.data['stress'][self.med_status,:,:], axis=(0, 2)),
+        #     self.stress_high = np.mean(self.data['stress'][self.high_status,:,:], axis=(0, 2)),
+        #     self.stress_std = np.std(np.mean(self.data['stress'][:,:,:], axis=0), axis=1),
+        #     self.stress_low_std = np.std(np.mean(self.data['stress'][self.low_status,:,:], axis=0), axis=1),
+        #     self.stress_med_std = np.std(np.mean(self.data['stress'][self.med_status,:,:], axis=0), axis=1),
+        #     self.stress_high_std = np.std(np.mean(self.data['stress'][self.high_status,:,:], axis=0), axis=1),      
 
-            self.chronic = np.mean(self.data['chronic'][:,:,:], axis=(0, 2)),
-            self.chronic_low = np.mean(self.data['chronic'][self.low_status,:,:], axis=(0, 2)),
-            self.chronic_med = np.mean(self.data['chronic'][self.med_status,:,:], axis=(0, 2)),
-            self.chronic_high = np.mean(self.data['chronic'][self.high_status,:,:], axis=(0, 2)),
-            self.chronic_std = np.std(np.mean(self.data['chronic'][:,:,:], axis=0), axis=1),
-            self.chronic_low_std = np.std(np.mean(self.data['chronic'][self.low_status,:,:], axis=0), axis=1),
-            self.chronic_med_std = np.std(np.mean(self.data['chronic'][self.med_status,:,:], axis=0), axis=1),
-            self.chronic_high_std = np.std(np.mean(self.data['chronic'][self.high_status,:,:], axis=0), axis=1),
-            self.params = self.params, 
-            self.df = self.df[['status', 'psr', 'eth','prestige']],            
+        #     self.chronic = np.mean(self.data['chronic'][:,:,:], axis=(0, 2)),
+        #     self.chronic_low = np.mean(self.data['chronic'][self.low_status,:,:], axis=(0, 2)),
+        #     self.chronic_med = np.mean(self.data['chronic'][self.med_status,:,:], axis=(0, 2)),
+        #     self.chronic_high = np.mean(self.data['chronic'][self.high_status,:,:], axis=(0, 2)),
+        #     self.chronic_std = np.std(np.mean(self.data['chronic'][:,:,:], axis=0), axis=1),
+        #     self.chronic_low_std = np.std(np.mean(self.data['chronic'][self.low_status,:,:], axis=0), axis=1),
+        #     self.chronic_med_std = np.std(np.mean(self.data['chronic'][self.med_status,:,:], axis=0), axis=1),
+        #     self.chronic_high_std = np.std(np.mean(self.data['chronic'][self.high_status,:,:], axis=0), axis=1),
+        #     self.params = self.params, 
+        #     self.df = self.df[['status', 'psr', 'eth','prestige']],            
                      
-        else:
-            self.stress = self.data['stress'],
-            self.stress_agents = self.data['stress_agents']
-            self.stress_std = self.data['stress_std'],
-            self.stress_low = self.data['stress_low'],
-            self.stress_med = self.data['stress_med'],
-            self.stress_high = self.data['stress_high'],
-            self.stress_low_std = self.data['stress_low_std'],
-            self.stress_med_std = self.data['stress_med_std'],
-            self.stress_high_std = self.data['stress_high_std'],
+        # else:
+        self.stress = self.data['stress'],
+        self.stress_agents = self.data['stress_agents']
+        self.stress_std = self.data['stress_std'],
+        self.stress_low = self.data['stress_low'],
+        self.stress_med = self.data['stress_med'],
+        self.stress_high = self.data['stress_high'],
+        self.stress_low_std = self.data['stress_low_std'],
+        self.stress_med_std = self.data['stress_med_std'],
+        self.stress_high_std = self.data['stress_high_std'],
 
-            self.chronic = self.data['chronic'],
-            self.chronic_agents = self.data['chronic_agents']
-            self.chronic_std = self.data['chronic_std'],
-            self.chronic_low = self.data['chronic_low'],
-            self.chronic_med = self.data['chronic_med'],
-            self.chronic_high = self.data['chronic_high'],
-            self.chronic_low_std = self.data['chronic_low_std'],
-            self.chronic_med_std = self.data['chronic_med_std'],
-            self.chronic_high_std = self.data['chronic_high_std'],
+        self.chronic = self.data['chronic'],
+        self.chronic_agents = self.data['chronic_agents']
+        self.chronic_std = self.data['chronic_std'],
+        self.chronic_low = self.data['chronic_low'],
+        self.chronic_med = self.data['chronic_med'],
+        self.chronic_high = self.data['chronic_high'],
+        self.chronic_low_std = self.data['chronic_low_std'],
+        self.chronic_med_std = self.data['chronic_med_std'],
+        self.chronic_high_std = self.data['chronic_high_std'],
 
-            self.prestige = self.data['prestige'],
-            self.prestige_agents = self.data['prestige_agents']
-            self.prestige_std = self.data['prestige_std'],
-            self.prestige_low = self.data['prestige_low'],
-            self.prestige_med = self.data['prestige_med'],
-            self.prestige_high = self.data['prestige_high'],
-            self.prestige_low_std = self.data['prestige_low_std'],
-            self.prestige_med_std = self.data['prestige_med_std'],
-            self.prestige_high_std = self.data['prestige_high_std'],
-            self.params = self.params, 
-            self.df = self.df[['status', 'psr', 'eth','prestige']],
-            self.df = self.df[0]            
-             
+        self.chronic_i = self.data['chronic_i'],
+        self.chronic_i_agents = self.data['chronic_i_agents']
+        self.chronic_i_std = self.data['chronic_i_std'],
+        self.chronic_i_low = self.data['chronic_i_low'],
+        self.chronic_i_med = self.data['chronic_i_med'],
+        self.chronic_i_high = self.data['chronic_i_high'],
+        self.chronic_i_low_std = self.data['chronic_i_low_std'],
+        self.chronic_i_med_std = self.data['chronic_i_med_std'],
+        self.chronic_i_high_std = self.data['chronic_i_high_std'],
+        
+        self.prestige = self.data['prestige'],
+        self.prestige_agents = self.data['prestige_agents']
+        self.prestige_std = self.data['prestige_std'],
+        self.prestige_low = self.data['prestige_low'],
+        self.prestige_med = self.data['prestige_med'],
+        self.prestige_high = self.data['prestige_high'],
+        self.prestige_low_std = self.data['prestige_low_std'],
+        self.prestige_med_std = self.data['prestige_med_std'],
+        self.prestige_high_std = self.data['prestige_high_std'],
+        
+        self.interactions = self.data['interactions'],
+        self.interactions_agents = self.data['interactions_agents']
+        self.interactions_std = self.data['interactions_std'],
+        self.interactions_low = self.data['interactions_low'],
+        self.interactions_med = self.data['interactions_med'],
+        self.interactions_high = self.data['interactions_high'],
+        self.interactions_low_std = self.data['interactions_low_std'],
+        self.interactions_med_std = self.data['interactions_med_std'],
+        self.interactions_high_std = self.data['interactions_high_std'],
+        
+        self.df = self.df[['status', 'psr', 'eth']],
+        self.df = self.df[0]            
+            
+        self.params = self.params, 
         self.no_agents = self.df.shape[0]
         self.low_status, self.med_status, self.high_status = self.split_population_status()
         # self.status_difference = results['status_difference']
@@ -103,7 +126,7 @@ class Analyzer():
         # self.stress_ts_std = np.std(self.stress_ts, axis = (0))
         
         
-        # self.prestige_ts = np.array(results['prestige'], dtype=np.float32)
+        # self.interactions_ts = np.array(results['prestige'], dtype=np.float32)
         # self.prestige_mean = np.mean(self.prestige_ts, axis = (1))
         # self.prestige_ts_mean = np.mean(self.stress_ts, axis=(0))
         # self.prestige_ts_std = np.std(self.prestige_ts, axis=(0))
@@ -208,16 +231,25 @@ def prior_analysis(folder, index):
 
     accepted = [] 
     rejected = []
-
-    files = np.array(glob.glob(root+ "results/*"+folder+"*/*.pkl"))
+    root = os.path.dirname(os.path.realpath(__file__)) 
+    print(root+ "\\results\\"+folder+"\\*.pkl")
+    files = np.array(glob.glob(root+ "\\results\\"+folder+"\\*.pkl"))
     print(folder)
     print("data files: ", len(files))
-    for file in files:
-        # print(file)
+    
+    p = param_dict
+    params_per_model = np.empty(shape=(len(files), len(p.keys())))
+    
+    
+    for i, file in enumerate(files):
+        print(file)
         with open(file, 'rb') as f:
             results = pickle.load(f)
+        
         d = Analyzer(results)
-
+        
+        for j, k in enumerate(p.keys()):
+            params_per_model[i, j] = d.params[0][k]
         # print(np.mean(d.stress))
         mean_stress = np.mean(d.stress)
         mean_stress_check = mean_stress > 0.01 
@@ -246,8 +278,7 @@ def prior_analysis(folder, index):
         mean_chronic_groups_check =  mean_chronic_low > mean_chronic_med >= mean_chronic_high
         if not mean_chronic_groups_check: rejected.append(file); continue; 
 
-                
-        
+
         
         accepted.append(file)
         # del d
@@ -257,136 +288,193 @@ def prior_analysis(folder, index):
     output = os.path.dirname(os.path.realpath(__file__)) + '\\results\\rejacc\\folder_'+ folder + ".pkl"
     f = open(output, "wb")
     pickle.dump([accepted, rejected], f)
+    
+    
+    # n = normalize(params_per_model[:,9], 0, 1)
+    # eds = np.empty(shape=(len(files),len(files)))
+    # print(params_per_model.shape, n.shape)
+    
+    # for i in range(params_per_model.shape[1]):
+    #     values = np.asarray(params_per_model[:, i], dtype=np.float64)
+    #     values = scale(values)
+
+    #     params_per_model[:, i] = values
+    #     # plt.hist(values)
+    #     # plt.title(list(p.keys())[i])
+    #     # plt.show()
+        
+    # combos = list(itertools.combinations(range(len(files)), 2))
+    # for combo in combos:
+    #     eds[combo[0], combo[1]] = np.linalg.norm(params_per_model[combo[0], :] - params_per_model[combo[1], :])
+    
+    # plt.figure(figsize=(12,12))
+    # plt.imshow(eds, cmap='hot', interpolation='nearest')
+    # plt.colorbar()
+    # plt.show()
     print("PRIOR ANALYSIS SAVED")
 
+def get_paramters_rejected():
+    rejaccs = glob.glob("./results/rejacc/folder_*.pkl")
+    rejects = []
+    accepts = []
+    p_r = copy.deepcopy(param_dict)
+    p_a = copy.deepcopy(param_dict)
+    
+    for rejacc in rejaccs:
+        with open(rejacc, 'rb') as f:
+            files = pickle.load(f)
+            accepts += files[0]
+            rejects += files[1]
+
+    print("rejects: ", len(rejects))
+    for reject in rejects:
+        with open(reject, 'rb') as f:
+            results = pickle.load(f)        
+        for k in p_r.keys():
+            p_r[k].append(results["params"][k])
+            
+    for accept in accepts:
+        with open(accept, 'rb') as f:
+            results = pickle.load(f)        
+        for k in p_r.keys():
+            p_a[k].append(results["params"][k])
+    
+    for k in p_r.keys():
+        fig, axs = plt.subplots(1, 2, sharex=True)
+        bins=np.histogram(np.hstack((p_r[k],p_a[k])), bins=50)[1] #get the bin edges
+
+        axs[0].hist(p_r[k], bins=bins)
+        # plt.title("accept: " + k)
+        axs[1].hist(p_a[k], bins=bins)
+        plt.title(k)
+        plt.show()      
         
 def explore_accepted(folder):
     plt.rcParams['figure.figsize'] = [12, 3]
 
-   
+    p = param_dict
     with open("./results/rejacc/folder_" + folder +'.pkl', 'rb') as f:
-        files = pickle.load(f)[0]
+        files = pickle.load(f)[1]
 
+    print()
     print("files: ", len(files)) 
-    for file in files[0:10]:
+    for file in files:
+        print(file)
         with open(file, 'rb') as f:
             results = pickle.load(f)
         d = Analyzer(results)
+        print("obtained results...")
         
-        print("ALL MEAN/STD: \t", np.mean(d.stress)/np.std(d.stress),"\t",np.mean(d.chronic)/np.std(d.chronic))
-        print("LOW MEAN/STD: \t", np.mean(d.stress_low)/np.std(d.stress_low),"\t",np.mean(d.chronic_low)/np.std(d.chronic_low))
-        print("MED MEAN/STD: \t", np.mean(d.stress_med)/np.std(d.stress_med),"\t",np.mean(d.chronic_med)/np.std(d.chronic_med))
-        print("HIGH MEAN/STD: \t", np.mean(d.stress_high)/np.std(d.stress_high),"\t",np.mean(d.chronic_high)/np.std(d.chronic_high))
-        
-        
-        # print(type(d.stress[0]))
-        # print(type(d.stress_std[0]))
-        
-        # plt.errorbar(x=np.arange(d.time), y=d.stress[0], yerr=d.stress_std[0])
+        print(d.stress_agents[d.low_status, :].shape)
+        plt.plot(d.stress_agents[d.low_status, :].T, c='k', alpha=0.05)
+        # plt.plot(np.mean(d.stress_agents[d.low_status], axis=0))
+        plt.show()   
+        # plt.scatter(d.df['status'].iloc[d.low_status] + d.prestige_agents[d.low_status,-1], np.mean(d.stress_agents[d.low_status], axis=1), alpha=0.3, c='b')
+        # plt.scatter(d.df['status'].iloc[d.med_status] + d.prestige_agents[d.med_status,-1], np.mean(d.stress_agents[d.med_status], axis=1), alpha=0.3, c='r')
+        # plt.scatter(d.df['status'].iloc[d.high_status] + d.prestige_agents[d.high_status,-1], np.mean(d.stress_agents[d.high_status], axis=1), alpha=0.3, c='g')
+        # plt.xlabel('status + prestige') 
+        # plt.ylabel('stress') 
         # plt.show()
-        plt.scatter(d.df['status'], np.mean(d.stress_agents, axis=1), alpha=0.5)
-        plt.show()
         
-        plt.errorbar(x=np.arange(d.time), y=d.stress_low[0], yerr=d.stress_low_std[0])
-        plt.errorbar(x=np.arange(d.time), y=d.stress_med[0], yerr=d.stress_med_std[0])
-        plt.errorbar(x=np.arange(d.time), y=d.stress_high[0], yerr=d.stress_high_std[0])
-        plt.show()
-        
-        plt.errorbar(x=np.arange(d.time), y=d.chronic_low[0], yerr=d.chronic_low_std[0])
-        plt.errorbar(x=np.arange(d.time), y=d.chronic_med[0], yerr=d.chronic_med_std[0])
-        plt.errorbar(x=np.arange(d.time), y=d.chronic_high[0], yerr=d.chronic_high_std[0])
-        plt.show()
-        
-        # plt.scatter()
+        # plt.scatter(d.df['status'], d.prestige_agents[:, -1], alpha=0.3)   
+        # plt.xlabel('status') 
+        # plt.ylabel('prestige') 
         # plt.show()
-        # plt.errorbar(x=np.arange(d.time), y=d.data["chronic_low"], yerr=d.data['chronic_low_std'])
-        # plt.errorbar(x=np.arange(d.time), y=d.data["chronic_med"], yerr=d.data['chronic_med_std'])
-        # plt.errorbar(x=np.arange(d.time), y=d.data["chronic_high"], yerr=d.data['chronic_high_std'])
+        
+        # plt.scatter(d.df['status'].iloc[d.low_status] + d.prestige_agents[d.low_status,-1], np.mean(d.interactions_agents[d.low_status], axis=1), alpha=0.3, c='b')
+        # plt.scatter(d.df['status'].iloc[d.med_status] + d.prestige_agents[d.med_status,-1], np.mean(d.interactions_agents[d.med_status], axis=1), alpha=0.3, c='r')
+        # plt.scatter(d.df['status'].iloc[d.high_status] + d.prestige_agents[d.high_status,-1], np.mean(d.interactions_agents[d.high_status], axis=1), alpha=0.3, c='g')
+        # plt.xlabel('status + prestige') 
+        # plt.ylabel('interactions') 
         # plt.show()
-        df = pd.DataFrame()
-        for i in np.arange(0, 500, 50):
-            df["{0:03}".format(i)] = d.stress_agents[:, i]
-        dfm = df.melt()
-        dfm.sort_values(by="variable", inplace=True) 
-        # # print(dfm.columns)
-        ax = sns.violinplot(x="variable", y="value", data=dfm, cut=0)
-        plt.ylabel("stress")
-        plt.show()
         
-        df = pd.DataFrame()
-        for i in np.arange(0, 500, 50):
-            df["{0:03}".format(i)] = d.chronic_agents[:, i]
-        dfm = df.melt()
-        dfm.sort_values(by="variable", inplace=True) 
-        # # print(dfm.columns)
-        ax = sns.violinplot(x="variable", y="value", data=dfm, cut=0)
-        plt.ylabel("chronic")
-        plt.show()        
-        # plt.hist(d.stress_mean)
-        # print("mean stress:\t\t", mean_stress, "\t"+str(mean_stress_check))
-        # print("median stress:\t\t", median_stress, "\t"+str(median_stress_check))
-        # print("mean chronic:\t\t", mean_chronic, "\t"+str(mean_chronic_check))
-        # print()
-        # print("mean stress low:\t", mean_stress_low) 
-        # print("mean stress med:\t", mean_stress_med, "\t"+str(mean_stress_groups_check)) 
-        # print("mean stress high:\t", mean_stress_high) 
-        # print()
-        # print("mean chronic low:\t", mean_chronic_low) 
-        # print("mean chronic med:\t", mean_chronic_med, "\t"+str(mean_chronic_groups_check))
-        # print("mean chronic high:\t", mean_chronic_high) 
-        # print()
-        # print("max prestige:\t\t", max_prestige, "\t"+str(max_presitge_check))
-        # stress = np.mean(d.stress_ts, axis=2)
-        
-      
-        # plt.errorbar(x=np.arange(d.time), y=d.stress, yerr=np.std(np.mean(d.stress_ts[d.low_status,:,:], axis=0), axis=1), c='r')
-        
-        # y = np.mean(stress_med, axis=1)
-        # yerr = np.std(stress_med, axis=1)
-        # plt.errorbar(x=np.arange(len(stress_med)), y=y, yerr=yerr, c='b')
-        
-        # y = np.mean(stress_high, axis=1)
-        # yerr = np.std(stress_high, axis=1)
-        # plt.errorbar(x=np.arange(len(stress_high)), y=y, yerr=yerr, c='g')
+        # stat = d.df['status']
+        # prest = d.prestige_agents[:, -1] + stat
+        # bins=np.histogram(np.hstack((stat,prest)), bins=50)[1] #get the bin edges
+        # plt.hist(stat, bins, color='b', alpha=0.5)
+        # plt.hist(prest, bins, color='r', alpha=0.5)
         # plt.show()
-        # print(stress.shape)
-        # df = pd.DataFrame()         
-        # columns = []
+        
+        # stress_end = d.stress_agents[:, d.time-1].flatten()
+        # plt.hist(np.array(d.stress_agents[:, d.time-1].flatten(), dtype=np.float32), bins=100)
+        # plt.xlabel('stress')
+        # plt.show()
+        
+        # plt.errorbar(x=np.arange(d.time), y=d.stress_low[0], yerr=d.stress_low_std[0])
+        # plt.errorbar(x=np.arange(d.time), y=d.stress_med[0], yerr=d.stress_med_std[0])
+        # plt.errorbar(x=np.arange(d.time), y=d.stress_high[0], yerr=d.stress_high_std[0])
+        # plt.ylabel("stress")
+        # plt.show()
+        
+        # plt.errorbar(x=np.arange(d.time), y=d.chronic_low[0], yerr=d.chronic_low_std[0])
+        # plt.errorbar(x=np.arange(d.time), y=d.chronic_med[0], yerr=d.chronic_med_std[0])
+        # plt.errorbar(x=np.arange(d.time), y=d.chronic_high[0], yerr=d.chronic_high_std[0])
+        # plt.ylabel("chronic")
+        # plt.show()
+        
+        # plt.errorbar(x=np.arange(d.time), y=d.chronic_i_low[0], yerr=d.chronic_i_low_std[0])
+        # plt.errorbar(x=np.arange(d.time), y=d.chronic_i_med[0], yerr=d.chronic_i_med_std[0])
+        # plt.errorbar(x=np.arange(d.time), y=d.chronic_i_high[0], yerr=d.chronic_i_high_std[0])
+        # plt.show()
+        
+        # plt.bar(["low", "med", "high"], [np.mean(d.stress_low),np.mean(d.stress_med),np.mean(d.stress_high)],  yerr = [np.std(d.stress_low),np.std(d.stress_med),np.std(d.stress_high)])
+        # plt.show()
+        # df = pd.DataFrame()
+        # for i in np.arange(0, 1000, 50):
+        #     df["{0:03}".format(i)] = d.stress_agents[:, i]
+        # dfm = df.melt()
+        # dfm.sort_values(by="variable", inplace=True) 
+        # # # print(dfm.columns)
+        # ax = sns.violinplot(x="variable", y="value", data=dfm, cut=0)
+        # plt.ylabel("stress")
+        # plt.show()
+        
+        # df = pd.DataFrame()
+        # for i in np.arange(0, 1000, 50):
+        #     df["{0:03}".format(i)] = d.chronic_agents[:, i]
+        # dfm = df.melt()
+        # dfm.sort_values(by="variable", inplace=True) 
+        # # # print(dfm.columns)
+        # ax = sns.violinplot(x="variable", y="value", data=dfm, cut=0)
+        # plt.ylabel("chronic")
+        # plt.show()
+                
+        
+        # df = pd.DataFrame()
+        # for i in np.arange(0, 500, 25):
+        #     df["{0:03}".format(i)] = d.chronic_agents[d.low_status, i]
+        # dfm = df.melt()
+        # dfm.sort_values(by="variable", inplace=True) 
+        # # # print(dfm.columns)
+        # ax = sns.violinplot(x="variable", y="value", data=dfm, cut=0)
+        # plt.ylabel("chronic state")
+        # plt.show()
+        
+        # df = pd.DataFrame()
+        # for i in np.arange(0, 500, 50):
+        #     df["{0:03}".format(i)] = d.chronic_agents[:, i]
+        # dfm = df.melt()
+        # dfm.sort_values(by="variable", inplace=True) 
+        # # # print(dfm.columns)
+        # ax = sns.violinplot(x="variable", y="value", data=dfm, cut=0)
+        # plt.ylabel("chronic")
+        # plt.show()        
 
-        
-        # for i in np.arange(0, 500, 50):
-        #     df["{0:03}".format(i)] = d.chronic_ts[:, i]
-        # dfm = df.melt()
-        # dfm.sort_values(by="variable", inplace=True) 
-        # # print(dfm.columns)
-        # ax = sns.violinplot(x="variable", y="value", data=dfm, cut=0)
-        # plt.ylabel("chronic_state")
-        
-        # plt.show()
-        
-        # for i in np.arange(0, 500, 50):
-        #     df["{0:03}".format(i)] = d.chronic_i_ts[:, i]
-        # dfm = df.melt()
-        # dfm.sort_values(by="variable", inplace=True) 
-        # # print(dfm.columns)
-        # ax = sns.violinplot(x="variable", y="value", data=dfm, cut=0)
-        # plt.ylabel("chronic_intensity")
-        # plt.show()
-        
-        # plt.plot(stress, alpha=0.1, c='black')
-        # plt.plot(np.mean(d.stress_ts[d.low_status], axis=0), c='r')
-        # plt.show()
+
+    
         del d
         plt.close('all')
-        print("\n\n\n")
-   
+        print("\n")
         
 if __name__ == "__main__":
-    folder = "pre-test"
-    # folder = "pre_test_200repsB"
+    folder = "pre_testC"
+    folder = "debug"
+    # folder = "pre-test"
+    
     index = []
     prior_analysis(folder=folder, index=index)
     explore_accepted(folder=folder)
+    # get_paramters_rejected()
     
     # explore(folder="debug", index=[0])
     
@@ -406,6 +494,7 @@ if __name__ == "__main__":
     # plt.plot(data.stress_ts_mean)
     # plt.show()
     # plt.plot(data.chronic_ts_mean)
+
 # %%
 
 # %%

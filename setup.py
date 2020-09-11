@@ -101,13 +101,16 @@ class Setup():
         del self.seeds[:repeats]
         return seeds
     
-    def configure_jobs(self):
+    def configure_jobs(self, track=""):
         for i, job in enumerate(self.jobs):
             self.jobs[i]['population'] = self.populations[i]
             self.jobs[i]['noise_seeds'] = self.get_job_seeds(job['repeats'])
             self.jobs[i]['similarity'] = self.similarity_matrices[i]
             self.jobs[i]['config'] = self.config_file
             self.jobs[i]['save_folder'] = self.config["save_folder"] 
+            # if track !="":
+            # self.jobs[i]['job_nr'] = int(i)
+            # print(self.jobs[i]['job_nr'])
 
 
 

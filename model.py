@@ -35,7 +35,7 @@ class Model():
         self.no_interactions = args['interactions']
         self.stress_max = args['stress_max']
         self.repeats = args['repeats']
-        
+        self.prestige_min = 0.001
         # Seeds
         self.noise_seeds = args['noise_seeds']
         
@@ -73,10 +73,12 @@ class Model():
         self.psr = np.array(self.df['psr'].values)
 
         # Global collectors        
-        self.status_difference = []
-        self.stressors = []
-        self.coped_stress = []
-        self.similarity_interactions = []
+        # self.status_difference = np.empty(shape=(3, 10000000))
+        self.status_difference = np.array([])
+        self.interaction_nr = 0
+        self.stressors = np.array([])
+        self.coped_stress = np.array([])
+        self.similarity_interactions = np.array([])
         self.low_status, self.med_status, self.high_status = self.split_population_status()
         # self.low_psr, self.med_psr, self.high_psr = self.split_population_psr()
         # self.print_init()
@@ -93,17 +95,20 @@ class Model():
             self.runtimes.append((time() - s)/60)
         print("job_nr: ", args['job_nr'], "\tFinished in: ", np.sum(self.runtimes))
         
+        # self.chronic_i_m = np.array([self.chronic_m[:,:,i] * self.stress_m[:,:,i] for i in range(self.repeats)])
+        # self.chronic_i_m = np.moveaxis(self.chronic_i_m,0,-1)
+        
         if DEBUG ==True:
             self.results = {
                 "job": args["job_nr"],
                 "stress": self.stress_m,
-                "stress_std": self.stress_m,
                 "prestige": self.prestige_m,
-                "prestige_std": self.prestige_m,
                 "interactions": self.interactions_m,
                 "chronic": self.chronic_m,
+                "events": self.events_m,
+                "status_difference": self.status_difference,
                 "params": self.params, 
-                "df": args['population'][['status', 'psr', 'eth','prestige']],
+                "df": self.df[['id', 'status', 'psr', 'eth']],
             }            
         elif SAVETYPE == "all":
             self.results = {
@@ -112,7 +117,7 @@ class Model():
                 "chronic": self.chronic_m,
                 "prestige": self.prestige_m,
                 "params": self.params, 
-                "df": self.df[['status', 'psr', 'eth','prestige']],
+                "df": self.df[['id', 'status', 'psr', 'eth']],
             }
         elif SAVETYPE == "group":
             self.results = {
@@ -136,6 +141,16 @@ class Model():
                 "chronic_med_std": np.std(np.mean(self.chronic_m[self.med_status,:,:], axis=0), axis=1),
                 "chronic_high_std": np.std(np.mean(self.chronic_m[self.high_status,:,:], axis=0), axis=1),
 
+                "chronic_i": np.mean(self.chronic_i_m[:,:,:], axis=(0, 2)),
+                "chronic_i_agents": np.mean(self.chronic_i_m[:,:,:], axis=(2)),
+                "chronic_i_std": np.std(np.mean(self.chronic_i_m[:,:,:], axis=0), axis=1),
+                "chronic_i_low": np.mean(self.chronic_i_m[self.low_status,:,:], axis=(0, 2)),
+                "chronic_i_med": np.mean(self.chronic_i_m[self.med_status,:,:], axis=(0, 2)),
+                "chronic_i_high": np.mean(self.chronic_i_m[self.high_status,:,:], axis=(0, 2)),                
+                "chronic_i_low_std": np.std(np.mean(self.chronic_i_m[self.low_status,:,:], axis=0), axis=1),
+                "chronic_i_med_std": np.std(np.mean(self.chronic_i_m[self.med_status,:,:], axis=0), axis=1),
+                "chronic_i_high_std": np.std(np.mean(self.chronic_i_m[self.high_status,:,:], axis=0), axis=1),
+
                 "prestige": np.mean(self.prestige_m[:,:,:], axis=(0, 2)),
                 "prestige_agents": np.mean(self.prestige_m[:,:,:], axis=(2)),
                 "prestige_std": np.std(np.mean(self.prestige_m[:,:,:], axis=0), axis=1),
@@ -158,7 +173,7 @@ class Model():
                 
                 "params": self.params, 
                 "df": self.df[['id', 'status', 'psr', 'eth']],
-                "events": self.events_m
+                # "events": self.events_m
         }
            
         if not os.path.exists("./results/"+ args["save_folder"]):
@@ -220,12 +235,11 @@ class Model():
         self.step = 0
         while(self.step < self.time - 1):
             actors = select_actors(self.events, self.step)
-            self.interactions, self.interaction_history, self.stress, self.similarity, self.prestige = interact_actors(actors, self.interactions, self.interaction_history, self.similarity, self.prestige, self.status, self.psr, self.prestige_param, self.ses_noise, self.prestige_beta, self.psr_param, self.stress, self.vul_param, self.stressor_param)
-
+            self.interactions, self.interaction_history, self.stress, self.similarity, self.prestige, self.status_difference, self.interaction_nr = interact_actors(actors, self.interactions, self.interaction_history, self.similarity, self.prestige, self.status, self.psr, self.prestige_param, self.ses_noise, self.prestige_beta, self.psr_param, self.stress, self.vul_param, self.stressor_param, self.prestige_min, self.status_difference, self.coping_noise, self.interaction_nr)
             self.stress = recover(self.stress, self.recover_param, self.stress_max)
             
-            if self.step%DAY==0: 
-                self.reset_day()
+            # if self.step%DAY==0: 
+            self.reset_day()
 
             self.step += 1
             self.collect()
@@ -234,40 +248,35 @@ class Model():
         self.similarity = deepcopy(self.similarity_base) 
         self.interaction_history = np.zeros((self.no_agents, self.no_agents), dtype=np.uint8)
             
-
-    def get_stressor(self, status_difference):
-        x_null = 3
-        L = 1.049
-        k = 1
-        return -0.049 + L/(1+np.exp(-k*(status_difference-x_null))) * self.stressor_param
-
                         
 if __name__ == "__main__":
-    root = os.path.dirname(os.path.realpath(__file__)) + "\\configs\\pre-test\\"
-    configs = [root + "sample_" + "{0:03}".format(i) + ".json" for i in np.arange(0, 96)]
+    samples = 300
+    # root = os.path.dirname(os.path.realpath(__file__)) + "\\configs\\pre-test\\"
+    # configs = [root + "sample_" + "{0:03}".format(i) + ".json" for i in np.arange(0, samples)]
     configs = [
         # 'ofat_recovery', 
-    #     # 'ofat_similarity', 
-    #     # 'ofat_psr',
-    #     # 'ofat_interactions',
-    #     # 'ofat_time',
-    #     # 'ofat_vulnerability',
-    #     # 'ofat_noise',
-    #     # "ofat_prestigebeta",
-        "./configs/debug.json",
+        # 'ofat_similarity', 
+        # 'ofat_psr',
+        # 'ofat_interactions',
+        # 'ofat_time',
+        # 'ofat_vulnerability',
+        # 'ofat_noise',
+        # "ofat_prestigebeta",
+        # "./configs/debug.json",
+        "./configs/interactions.json",
         ]
     
     jobs = []
     for i, config in enumerate(configs):
-        print("preparing job: ", i)
+        print("preparing config: ", i)
         setup = Setup(config_file=config)
         if i == 0: jobs = setup.jobs
         else: jobs += setup.jobs
         
     print("Total jobs: ", len(jobs))
-    run_models(jobs[0])
-    # with Pool() as p:
-        # p.map(run_models, jobs)
+    # run_models(jobs[0])
+    with Pool() as p:
+        p.map(run_models, jobs)
     print("FINISH")
 
 # %%
